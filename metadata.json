@@ -1,0 +1,6 @@
+{
+  "name": "Owen Kim — PM Portfolio",
+  "description": "Minimalist, high-impact personal PM portfolio for Owen Kim featuring an interactive tennis racket navigation engine.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

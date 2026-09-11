@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@layer utilities {
+  /* Warm lived-in scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #141311;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #2D2B26;
+    border-radius: 9999px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #C8A462;
+  }
+}
+
+/* Lived-in, Homey Heritage Theme Tokens */
+.warm-panel {
+  background: rgba(32, 30, 27, 0.85);
+  border: 1px solid rgba(230, 222, 206, 0.09);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.warm-panel-subtle {
+  background: rgba(28, 26, 23, 0.55);
+  border: 1px solid rgba(230, 222, 206, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.warm-card {
+  background: #1B1A17;
+  border: 1px solid rgba(230, 222, 206, 0.08);
+}
+
+.warm-card-hover {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.warm-card-hover:hover {
+  border-color: rgba(200, 164, 98, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+}
+
+/* Nostalgic Video & Film Overlays */
+.nostalgic-vignette {
+  background: radial-gradient(circle at center, transparent 35%, rgba(20, 19, 17, 0.65) 80%, rgba(20, 19, 17, 0.95) 100%);
+}
+
+.nostalgic-film-filter {
+  filter: sepia(18%) saturate(88%) contrast(96%) brightness(88%);
+}
+
+/* Subtle analog scanlines */
+.scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 14, 0) 50%, 
+    rgba(0, 0, 0, 0.18) 50%
+  );
+  background-size: 100% 4px;
+}
+
+@keyframes gentleBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+.animate-gentle-bounce {
+  animation: gentleBounce 2s ease-in-out infinite;
+}
+
