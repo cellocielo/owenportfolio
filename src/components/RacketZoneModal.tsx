@@ -81,6 +81,7 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
 
   // Video playback & framing controls
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(true);
+  const [natureVideoError, setNatureVideoError] = useState<boolean>(false);
   const natureVideoRef = useRef<HTMLVideoElement | null>(null);
   const generalVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -318,19 +319,25 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
     ? getCustomImage(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id)
     : null;
 
-  // For nature-based slide, ensure video is always used (if user stored a static image earlier, don't let it override the prototype video)
+  // For nature-based slide, prioritize user custom uploaded video, else use customSavedImage, else default imageUrl
   const isCustomVideo = Boolean(
     customSavedImage && (
       customSavedImage.startsWith('data:video/') ||
+      customSavedImage.startsWith('blob:') ||
       /\.(mp4|mov|webm|m4v|ogv)(\?.*)?$/i.test(customSavedImage)
     )
   );
 
   const activeImageUrl = isNatureBasedSlide
-    ? (isCustomVideo ? customSavedImage! : '/cpm_08_prototype.mp4')
+    ? (isCustomVideo ? customSavedImage! : (defaultActiveImage?.imageUrl || '/cpm_08_prototype.mp4'))
     : ((customSavedImage && customSavedImage.trim().length > 0)
         ? customSavedImage
         : (defaultActiveImage?.imageUrl || ''));
+
+  const isSpritzSlide = Boolean(
+    currentSlide?.name?.toLowerCase().includes('spritz') ||
+    activeImageUrl?.toLowerCase().includes('spritz')
+  );
 
   // Parse potential YouTube or Vimeo URL for ambient background video streaming
   const youtubeMatch = activeImageUrl
@@ -867,57 +874,76 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                       </div>
                     ) : isVideo ? (
                       isNatureBasedSlide ? (
-                        <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-[#0A0908]">
-                          {/* Ambient blurred backdrop video to fill surrounding space organically */}
-                          <video
-                            key={`ambient-${activeImageUrl}`}
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-35 scale-110 pointer-events-none"
-                          >
-                            <source src={activeImageUrl} type="video/mp4" />
-                            <source src="/cpm_08_prototype.mp4" type="video/mp4" />
-                            <source src="/nature_app_demo.mp4" type="video/mp4" />
-                            <source src="/IMG_0904.MOV" type="video/quicktime" />
-                          </video>
-
-                          {/* Centered iPhone Demo Video Layer - Prominent Larger Framing */}
+                        <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
+                          {/* Centered Demo Video Layer */}
                           <div className="relative z-10 w-full h-full flex items-center justify-center p-0">
-                            <div className="relative flex items-center justify-center w-full h-full">
-                              <video
-                                ref={natureVideoRef}
-                                key={`nature-video-${activeImageUrl}`}
-                                autoPlay
-                                loop
-                                muted={isMuted}
-                                playsInline
-                                preload="auto"
-                                onLoadedData={(e) => {
-                                  e.currentTarget.play().catch(() => {});
-                                }}
-                                onClick={handleTogglePlayVideo}
-                                className="w-full h-full object-cover cursor-pointer opacity-50 sm:opacity-55 transition-opacity duration-300"
-                                style={{ objectPosition: '55% 45%' }}
-                              >
-                                <source src={activeImageUrl} type="video/mp4" />
-                                <source src="/cpm_08_prototype.mp4" type="video/mp4" />
-                                <source src="/nature_app_demo.mp4" type="video/mp4" />
-                                <source src="/IMG_0904.MOV" type="video/quicktime" />
-                              </video>
-
-                              {/* Interactive Play/Pause button when video is paused */}
-                              {!isVideoPlaying && (
-                                <button
+                            {activeImageUrl && !natureVideoError ? (
+                              <div className="relative flex items-center justify-center w-full h-full">
+                                <video
+                                  ref={natureVideoRef}
+                                  key={`nature-video-${activeImageUrl}`}
+                                  autoPlay
+                                  loop
+                                  muted={isMuted}
+                                  playsInline
+                                  preload="auto"
+                                  onError={() => setNatureVideoError(true)}
+                                  onLoadedData={(e) => {
+                                    e.currentTarget.play().catch(() => {});
+                                  }}
                                   onClick={handleTogglePlayVideo}
-                                  className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/75 border border-[#C8A462]/60 text-[#C8A462] flex items-center justify-center backdrop-blur-md shadow-2xl hover:scale-110 transition-transform cursor-pointer z-30"
-                                  title="Play Video"
+                                  className="w-full h-full object-cover cursor-pointer opacity-100 transition-opacity duration-300"
+                                  style={{ objectPosition: '55% 45%' }}
                                 >
-                                  <Play className="w-7 h-7 fill-current ml-1" />
-                                </button>
-                              )}
-                            </div>
+                                  <source src={activeImageUrl} type="video/mp4" />
+                                  <source src={activeImageUrl} type="video/quicktime" />
+                                  <source src="/cpm_08_prototype.mp4" type="video/mp4" />
+                                  <source src="/IMG_0904.MOV" type="video/quicktime" />
+                                </video>
+
+                                {/* Interactive Play/Pause button when video is paused */}
+                                {!isVideoPlaying && (
+                                  <button
+                                    onClick={handleTogglePlayVideo}
+                                    className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-black/75 border border-[#C8A462]/60 text-[#C8A462] flex items-center justify-center backdrop-blur-md shadow-2xl hover:scale-110 transition-transform cursor-pointer z-30"
+                                    title="Play Video"
+                                  >
+                                    <Play className="w-7 h-7 fill-current ml-1" />
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              /* Dedicated CPM 08 Prototype Video Upload Hub */
+                              <div className="w-full h-full bg-[#11100E] relative flex items-center justify-center p-6 text-center">
+                                <div className="absolute inset-0 bg-[radial-gradient(#C8A462_1px,transparent_1px)] [background-size:48px_48px] opacity-15" />
+                                <div className="relative z-10 max-w-md flex flex-col items-center">
+                                  <div className="w-16 h-16 rounded-2xl bg-[#C8A462]/10 border border-[#C8A462]/30 flex items-center justify-center mb-4 text-[#C8A462] shadow-lg">
+                                    <Video className="w-8 h-8" />
+                                  </div>
+                                  <h3 className="text-xl font-serif text-[#F6F3ED] font-semibold mb-2">
+                                    CPM 08 Prototype Video
+                                  </h3>
+                                  <p className="text-xs text-[#A8A294] font-mono mb-6 max-w-sm leading-relaxed">
+                                    Drop your prototype video file (.mov or .mp4) anywhere on this screen, or click below to select it from your device.
+                                  </p>
+                                  <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+                                    <button
+                                      onClick={() => fileInputRef.current?.click()}
+                                      className="px-5 py-2.5 rounded-xl bg-[#C8A462] hover:bg-[#D4B272] text-[#161513] font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center gap-2"
+                                    >
+                                      <Upload className="w-4 h-4" />
+                                      <span>Select Video File</span>
+                                    </button>
+                                    <button
+                                      onClick={() => setIsImageModalOpen(true)}
+                                      className="px-4 py-2.5 rounded-xl bg-[#1D1B18] hover:bg-[#2A2722] text-[#C8A462] border border-[#C8A462]/30 font-mono text-xs transition-all cursor-pointer active:scale-95"
+                                    >
+                                      Paste Video Link
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -940,7 +966,7 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                       <img
                         src={customSavedImage}
                         alt={currentSlide?.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover transition-opacity duration-300"
                       />
                     ) : availableImages.length > 1 ? (
                       /* Layered Multi-Image Smooth Cross-Dissolve */
@@ -974,9 +1000,17 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                         style={{
                           objectPosition: (activeImageUrl.includes('DSC00474') || defaultActiveImage?.id === 'tennis-img-1')
                             ? 'center 28%'
+                            : (activeImageUrl.includes('IMG_3371') || currentSlide?.id === 'tft-scaling')
+                            ? 'center 18%'
+                            : activeImageUrl.includes('IMG_1586')
+                            ? 'center 24%'
                             : 'center center',
                         }}
-                        className="w-full h-full object-cover"
+                        className={`w-full h-full object-cover transition-opacity duration-300 ${
+                          (activeImageUrl.includes('IMG_3371') || currentSlide?.id === 'tft-scaling')
+                            ? 'brightness-[1.12] contrast-[1.04]'
+                            : ''
+                        }`}
                       />
                     ) : (
                       /* Minimalist Canvas for projects without an image or video yet */
@@ -1007,10 +1041,10 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
 
                   {/* Cinematic Dark Gradient Overlays */}
                   <div
-                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-t from-black/90 via-black/40 to-transparent"
+                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-t from-black/75 via-black/30 to-transparent"
                   />
                   <div
-                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-r from-black/65 via-transparent to-black/30"
+                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-r from-black/55 via-transparent to-black/25"
                   />
 
                   {/* Kinetic Downward Transition Accent Line */}

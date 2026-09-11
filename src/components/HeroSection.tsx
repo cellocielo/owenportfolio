@@ -130,12 +130,12 @@ export const HeroSection: React.FC = () => {
         <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-b from-transparent via-[#161513]/70 to-[#161513]" />
       </div>
 
-      {/* Top Bar Video Control: On / Off Toggle */}
-      <div className="absolute top-8 left-0 right-0 max-w-6xl mx-auto px-6 sm:px-8 flex items-center justify-end z-20">
+      {/* Top Bar Video Control: On / Off Toggle - Neatly anchored in the top right corner of the full screen */}
+      <div className="absolute top-5 right-5 sm:top-6 sm:right-6 md:top-8 md:right-8 z-30 pointer-events-auto">
         <button
           id="toggle-video-btn"
           onClick={toggleVideo}
-          className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full warm-panel-subtle hover:bg-[#25231F] border border-[#E6DECE]/10 hover:border-[#C8A462]/40 text-[#A8A294] hover:text-[#F6F3ED] transition-all cursor-pointer pointer-events-auto shadow-sm"
+          className="flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-[#161513]/85 backdrop-blur-md hover:bg-[#25231F] border border-[#E6DECE]/15 hover:border-[#C8A462]/40 text-[#A8A294] hover:text-[#F6F3ED] transition-all cursor-pointer pointer-events-auto shadow-md"
           title={isVideoEnabled ? 'Turn video background off' : 'Turn video background on'}
           aria-label={isVideoEnabled ? 'Turn video background off' : 'Turn video background on'}
         >

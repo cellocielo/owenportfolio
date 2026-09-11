@@ -40,7 +40,7 @@ export const portfolioData: PortfolioContent = {
         images: [
           {
             id: 'coaching-img-1',
-            imageUrl: '/IMG_3371.jpg'
+            imageUrl: '/IMG_1586.jpg'
           }
         ],
         stats: ['Patient Technical Instruction', 'Fostering Confidence', 'Heartfelt Mentorship'],
@@ -56,6 +56,12 @@ export const portfolioData: PortfolioContent = {
           '$5k international emergency aid'
         ],
         summary: 'I drafted operational procedures for new chapter onboarding and collaborated with friends in Ukraine to send thousands of dollars of grant earnings to savED, aiding bombed Ukrainian communities with tech.',
+        images: [
+          {
+            id: 'tft-scaling-img-1',
+            imageUrl: '/IMG_3371.jpg'
+          }
+        ],
         stats: ['11 Chapters Nationwide', '$30,000 Refurbished Tech', '$5,000 Direct International Aid'],
         skills: ['Multi-Chapter GTM', 'Logistics Supply Chain', 'Stakeholder Management', 'Impact Auditing']
       },
@@ -129,6 +135,12 @@ export const portfolioData: PortfolioContent = {
           'Balanced legal obligations, budget allocation, and community accountability strike systems'
         ],
         summary: 'Implemented an accountability strike system for volunteer coaches and clinic staff. Balancing accountability with leniency required understanding how it would affect both an individual coach and the organization as a whole.',
+        images: [
+          {
+            id: 'jamma-strike-img',
+            imageUrl: '/IMG_9961.jpg'
+          }
+        ],
         stats: ['Accountability Strike Framework', 'Legal Compliance Governance', 'Transparent Budgeting'],
         skills: ['Operational Governance', 'Conflict Resolution', 'Policy Architecture']
       }
@@ -150,6 +162,12 @@ export const portfolioData: PortfolioContent = {
           'Coded a full interactive 3D virtual home simulation with visual object logic'
         ],
         summary: 'I designed an interactive virtual home environment in Unity using C# where users learn about sustainability through immersive animations. Click the link to see a demo!',
+        images: [
+          {
+            id: 'unity-sim-img',
+            imageUrl: '/unity_livingfootprints_ss.png'
+          }
+        ],
         stats: ['Custom C# Object Logic', '3D Spatial Audio & Physics', 'Integrated Educational Curricula'],
         skills: ['Unity / C#', '3D Scene Graph', 'Event-Driven Architecture', 'Interactive Logic']
       },
@@ -161,6 +179,12 @@ export const portfolioData: PortfolioContent = {
           'Full-stack web application development, custom data schema handling, and dynamic UI chart rendering'
         ],
         summary: 'Inspired by my recent interest in collecting fragrances, I designed a mobile social media app called Spritz for fragrance fanatics. It allows users to showcase their collection digitally and see others’ collections.',
+        images: [
+          {
+            id: 'spritz-img',
+            imageUrl: '/spritz_ss.png'
+          }
+        ],
         stats: ['Dynamic Chart Vector Engine', 'Normalized Relational Data Schema', 'Low-Latency Filter Queries'],
         skills: ['TypeScript / React', 'API Engineering', 'Data Schema Design', 'Responsive SVG Visuals']
       },
@@ -217,6 +241,12 @@ export const portfolioData: PortfolioContent = {
           'Directed chapter setup, supply chain refurbishing, and international aid logistics'
         ],
         summary: 'As the chapter director of TechforTomorrow, I expanded chapter operations nationwide through new chapter starter guides and continuous check-ins. Due to differing regional policies, we create customized workarounds that contributed to our mission of spreading technology accessibility to underprivileged populations.',
+        images: [
+          {
+            id: 'tft-grip-img',
+            imageUrl: '/oakpickupimage2.jpg'
+          }
+        ],
         stats: ['National Chapter Playbook', 'Hardware QA Pipeline', 'International Customs Logistics'],
         skills: ['Operations Orchestration', 'Logistics Protocol', 'Rapid Chapter Onboarding']
       }

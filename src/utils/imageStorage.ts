@@ -126,6 +126,48 @@ if (typeof window !== 'undefined') {
           removeFromIndexedDB(k);
           modified = true;
         }
+        // Purge any stale coaching images so IMG_1586.jpg is used permanently
+        if (k.includes('coaching') && (parsed[k]?.includes('IMG_3371') || parsed[k]?.startsWith('data:image/'))) {
+          delete parsed[k];
+          delete memoryCache[k];
+          removeFromIndexedDB(k);
+          modified = true;
+        }
+        // Purge any stale tft-scaling images so IMG_3371.jpg is used permanently
+        if ((k.includes('tft_scaling') || (k.includes('tech_for_tomorrow') && k.includes('scaling'))) && (parsed[k]?.startsWith('data:image/') || parsed[k]?.includes('tft_community_workshop'))) {
+          delete parsed[k];
+          delete memoryCache[k];
+          removeFromIndexedDB(k);
+          modified = true;
+        }
+        // Purge any stale unity simulation images so unity_livingfootprints_ss.png is used permanently
+        if ((k.includes('unity') || k.includes('simulation')) && (parsed[k]?.startsWith('data:image/') || !parsed[k]?.includes('unity'))) {
+          delete parsed[k];
+          delete memoryCache[k];
+          removeFromIndexedDB(k);
+          modified = true;
+        }
+        // Purge any stale spritz images so spritz_ss.png is used permanently
+        if (k.includes('spritz') && (parsed[k]?.startsWith('data:image/') || !parsed[k]?.includes('spritz'))) {
+          delete parsed[k];
+          delete memoryCache[k];
+          removeFromIndexedDB(k);
+          modified = true;
+        }
+        // Purge any stale strike system images so IMG_9961.jpg is used permanently
+        if (k.includes('strike') && (parsed[k]?.startsWith('data:image/') || !parsed[k]?.includes('9961'))) {
+          delete parsed[k];
+          delete memoryCache[k];
+          removeFromIndexedDB(k);
+          modified = true;
+        }
+        // Purge any stale TFT grip operations images so oakpickupimage2.jpg is used permanently
+        if (((k.includes('grip') && k.includes('tft')) || k.includes('tft_operations')) && (parsed[k]?.startsWith('data:image/') || !parsed[k]?.includes('oakpickupimage2'))) {
+          delete parsed[k];
+          delete memoryCache[k];
+          removeFromIndexedDB(k);
+          modified = true;
+        }
       }
       if (modified) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
@@ -137,6 +179,41 @@ if (typeof window !== 'undefined') {
     let updated = false;
     for (const [k, v] of Object.entries(idbImages)) {
       if (k.includes('nature') && (v.startsWith('data:image/') || v.includes('.png') || v.includes('.jpg'))) {
+        removeFromIndexedDB(k);
+        delete memoryCache[k];
+        continue;
+      }
+      if (k.includes('nature') && (v.includes('cpm_06_ss.png') || v.startsWith('data:image/'))) {
+        removeFromIndexedDB(k);
+        delete memoryCache[k];
+        continue;
+      }
+      if (k.includes('coaching') && (v.includes('IMG_3371') || v.startsWith('data:image/'))) {
+        removeFromIndexedDB(k);
+        delete memoryCache[k];
+        continue;
+      }
+      if ((k.includes('tft_scaling') || (k.includes('tech_for_tomorrow') && k.includes('scaling'))) && (v.startsWith('data:image/') || v.includes('tft_community_workshop'))) {
+        removeFromIndexedDB(k);
+        delete memoryCache[k];
+        continue;
+      }
+      if ((k.includes('unity') || k.includes('simulation')) && (v.startsWith('data:image/') || !v.includes('unity'))) {
+        removeFromIndexedDB(k);
+        delete memoryCache[k];
+        continue;
+      }
+      if (k.includes('spritz') && (v.startsWith('data:image/') || !v.includes('spritz'))) {
+        removeFromIndexedDB(k);
+        delete memoryCache[k];
+        continue;
+      }
+      if (k.includes('strike') && (v.startsWith('data:image/') || !v.includes('9961'))) {
+        removeFromIndexedDB(k);
+        delete memoryCache[k];
+        continue;
+      }
+      if (((k.includes('grip') && k.includes('tft')) || k.includes('tft_operations')) && (v.startsWith('data:image/') || !v.includes('oakpickupimage2'))) {
         removeFromIndexedDB(k);
         delete memoryCache[k];
         continue;
