@@ -111,16 +111,8 @@ if (typeof window !== 'undefined') {
           removeFromIndexedDB(k);
           modified = true;
         }
-        // Purge any stale non-video or screenshot images for nature-based slide so prototype video plays reliably
-        if (k.includes('nature') && (
-          !parsed[k] ||
-          parsed[k].startsWith('data:image/') ||
-          parsed[k].includes('cpm_06_ss.png') ||
-          parsed[k].includes('Screenshot') ||
-          parsed[k].endsWith('.png') ||
-          parsed[k].endsWith('.jpg') ||
-          parsed[k].endsWith('.jpeg')
-        )) {
+        // Purge any stored image or video for nature-based slide so prototype video plays reliably
+        if (k.includes('nature') || k.includes('recreation') || k.includes('friction') || k.includes('cpm') || (parsed[k]?.includes('IMG_0904') && !k.includes('hero'))) {
           delete parsed[k];
           delete memoryCache[k];
           removeFromIndexedDB(k);
@@ -178,12 +170,7 @@ if (typeof window !== 'undefined') {
   loadAllFromIndexedDB().then((idbImages) => {
     let updated = false;
     for (const [k, v] of Object.entries(idbImages)) {
-      if (k.includes('nature') && (v.startsWith('data:image/') || v.includes('.png') || v.includes('.jpg'))) {
-        removeFromIndexedDB(k);
-        delete memoryCache[k];
-        continue;
-      }
-      if (k.includes('nature') && (v.includes('cpm_06_ss.png') || v.startsWith('data:image/'))) {
+      if (k.includes('nature') || k.includes('recreation') || k.includes('friction') || k.includes('cpm') || (v.includes('IMG_0904') && !k.includes('hero'))) {
         removeFromIndexedDB(k);
         delete memoryCache[k];
         continue;
@@ -273,6 +260,15 @@ export function getCustomImage(
   projectBadge?: string,
   projectId?: string
 ): string | null {
+  // Nature-Based slide must strictly play its official prototype video asset
+  if (
+    (projectName && (projectName.toLowerCase().includes('nature') || projectName.toLowerCase().includes('recreation'))) ||
+    (projectId && (projectId.includes('nature') || projectId.includes('cpm'))) ||
+    (projectBadge && (projectBadge.toLowerCase().includes('friction') || projectBadge.toLowerCase().includes('eco')))
+  ) {
+    return null;
+  }
+
   const specificKey = getProjectImageKey(zone, projectName, projectBadge, projectId);
   if (memoryCache[specificKey]) return memoryCache[specificKey];
 

@@ -104,7 +104,7 @@ export const portfolioData: PortfolioContent = {
         images: [
           {
             id: 'nature-app-demo-video',
-            imageUrl: '/cpm_08_prototype.mp4',
+            imageUrl: '/cpm_08_prototype.mov',
             isVideo: true
           }
         ],

@@ -7,34 +7,20 @@ import {
   Volume2, 
   VolumeX,
   Video,
-  Camera,
-  Upload,
-  Link as LinkIcon,
-  Link2,
-  ExternalLink,
   ArrowUpRight,
-  Globe,
-  Trash2,
-  RotateCcw,
-  Check,
   BookOpen,
   Play,
-  Pause
+  Pause,
+  Sparkles
 } from 'lucide-react';
 import { RacketZone } from '../types';
 import { portfolioData } from '../data/portfolioData';
 import { playTennisPop } from '../utils/audio';
-import { 
-  getCustomImage, 
-  saveCustomImage, 
-  removeCustomImage, 
-  processImageFile 
-} from '../utils/imageStorage';
+import { getCustomImage } from '../utils/imageStorage';
 import {
   getCustomLink,
-  saveCustomLink,
-  removeCustomLink,
-  formatUrl,
+  DEFAULT_LINKS,
+  getSlideLinkKey,
   isSlideLinkDisabled
 } from '../utils/linkStorage';
 import { AuditoryFrameworkPaperModal } from './AuditoryFrameworkPaperModal';
@@ -61,21 +47,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
   const [tennisImgIndex, setTennisImgIndex] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(true);
 
-  // Custom image input state
-  const [isImageModalOpen, setIsImageModalOpen] = useState<boolean>(false);
-  const [imageUrlInput, setImageUrlInput] = useState<string>('');
-  const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
-  const [saveSuccessToast, setSaveSuccessToast] = useState<boolean>(false);
-  const [customImageVersion, setCustomImageVersion] = useState<number>(0);
-  const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-
-  // Custom link input state
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState<boolean>(false);
-  const [linkUrlInput, setLinkUrlInput] = useState<string>('');
-  const [customLinkVersion, setCustomLinkVersion] = useState<number>(0);
-  const [toastMessage, setToastMessage] = useState<string>('');
-
   // Academic paper reading modal state
   const [isPaperModalOpen, setIsPaperModalOpen] = useState<boolean>(false);
 
@@ -85,25 +56,12 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
   const natureVideoRef = useRef<HTMLVideoElement | null>(null);
   const generalVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastWheelTime = useRef<number>(0);
   const touchStartY = useRef<number | null>(null);
 
   const currentZoneKey = zone || 'dampener';
   const zoneData = portfolioData[currentZoneKey];
   const slides = zoneData?.projects || [];
-
-  // Listen to custom images & links updates (e.g. from IndexedDB hydration or cross-component saves)
-  useEffect(() => {
-    const handleImageUpdate = () => setCustomImageVersion((v) => v + 1);
-    const handleLinkUpdate = () => setCustomLinkVersion((v) => v + 1);
-    window.addEventListener('custom-images-updated', handleImageUpdate);
-    window.addEventListener('custom-links-updated', handleLinkUpdate);
-    return () => {
-      window.removeEventListener('custom-images-updated', handleImageUpdate);
-      window.removeEventListener('custom-links-updated', handleLinkUpdate);
-    };
-  }, []);
 
   // Reset state when modal opens or zone changes
   useEffect(() => {
@@ -113,8 +71,7 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
       setDirection(1);
       setIsFirstEntry(true);
       setTennisImgIndex(0);
-      setIsImageModalOpen(false);
-      setImageUrlInput('');
+      setNatureVideoError(false);
       playTennisPop(480);
     }
   }, [isOpen, zone, initialSlide, initialMode]);
@@ -122,12 +79,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
   // Preload and hardware-decode available slide images into browser memory
   useEffect(() => {
     slides.forEach((slide) => {
-      const customImg = getCustomImage(currentZoneKey, slide.name, slide.badge, slide.id);
-      if (customImg) {
-        const pImg = new Image();
-        pImg.src = customImg;
-        if ('decode' in pImg) pImg.decode().catch(() => {});
-      }
       slide.images?.forEach((img) => {
         if (img.imageUrl && !img.isVideo) {
           const preloadImg = new Image();
@@ -138,20 +89,12 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
         }
       });
     });
-  }, [slides, currentZoneKey, customImageVersion]);
+  }, [slides]);
 
-  // Listen to custom images storage updates
-  useEffect(() => {
-    const handleUpdate = () => {
-      setCustomImageVersion((v) => v + 1);
-    };
-    window.addEventListener('custom-images-updated', handleUpdate);
-    return () => window.removeEventListener('custom-images-updated', handleUpdate);
-  }, []);
-
-  // Reset tennis image index whenever slide changes
+  // Reset tennis image index & video error whenever slide changes
   useEffect(() => {
     setTennisImgIndex(0);
+    setNatureVideoError(false);
   }, [currentIndex]);
 
   // Alternate between tennis images smoothly every 5 seconds when on "Playing Tennis"
@@ -249,8 +192,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isImageModalOpen || isLinkModalOpen) return;
-
       if (
         e.key === ' ' ||
         e.key === 'PageUp' ||
@@ -301,35 +242,29 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isOpen, viewMode, currentIndex, slides.length, isImageModalOpen, isLinkModalOpen]);
+  }, [isOpen, viewMode, currentIndex, slides.length]);
 
   const currentSlide = slides[currentIndex];
   const availableImages = currentSlide?.images || [];
   const defaultActiveImage = availableImages[0];
 
-  // Check if current slide is Nature-Based Recreational Apps (for video input and dedicated centered iPhone presentation)
+  // Check if current slide is Nature-Based Recreational Apps
   const isNatureBasedSlide = Boolean(
-    currentSlide?.name?.toLowerCase().includes('nature-based') ||
+    currentSlide?.name?.toLowerCase().includes('nature') ||
+    currentSlide?.name?.toLowerCase().includes('recreation') ||
     currentSlide?.id?.includes('nature') ||
-    currentSlide?.badge?.toLowerCase().includes('eco friction')
+    currentSlide?.badge?.toLowerCase().includes('friction') ||
+    currentSlide?.badge?.toLowerCase().includes('eco')
   );
 
   // Resolve custom user image or video from permanent storage
-  const customSavedImage = currentSlide
+  const customSavedImage = (!isNatureBasedSlide && currentSlide)
     ? getCustomImage(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id)
     : null;
 
-  // For nature-based slide, prioritize user custom uploaded video, else use customSavedImage, else default imageUrl
-  const isCustomVideo = Boolean(
-    customSavedImage && (
-      customSavedImage.startsWith('data:video/') ||
-      customSavedImage.startsWith('blob:') ||
-      /\.(mp4|mov|webm|m4v|ogv)(\?.*)?$/i.test(customSavedImage)
-    )
-  );
-
+  // Nature-Based slide strictly plays CPM 08 Prototype video
   const activeImageUrl = isNatureBasedSlide
-    ? (isCustomVideo ? customSavedImage! : (defaultActiveImage?.imageUrl || '/cpm_08_prototype.mp4'))
+    ? '/cpm%2008%20prototype%20video.mov'
     : ((customSavedImage && customSavedImage.trim().length > 0)
         ? customSavedImage
         : (defaultActiveImage?.imageUrl || ''));
@@ -354,8 +289,7 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
     isNatureBasedSlide ||
     Boolean(youtubeId) ||
     Boolean(vimeoId) ||
-    Boolean(customSavedImage && (customSavedImage.startsWith('data:video/') || /\.(mp4|mov|webm|m4v|ogv)(\?.*)?$/i.test(customSavedImage))) ||
-    Boolean(!customSavedImage && (defaultActiveImage?.isVideo || /\.(mp4|mov|webm|m4v|ogv)(\?.*)?$/i.test(activeImageUrl)));
+    Boolean(defaultActiveImage?.isVideo || /\.(mp4|mov|webm|m4v|ogv)(\?.*)?$/i.test(activeImageUrl));
 
   // Ensure video reliably autoplays without being blocked by browser autoplay policies
   useEffect(() => {
@@ -401,152 +335,26 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
     }
   };
 
-  // Handle file input
-  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentSlide) return;
-
-    setIsProcessingFile(true);
-    setUploadError(null);
-    try {
-      const processed = await processImageFile(file);
-      saveCustomImage(currentZoneKey, currentSlide.name, processed, currentSlide.badge, currentSlide.id);
-      setCustomImageVersion((v) => v + 1);
-      setIsImageModalOpen(false);
-      setToastMessage(isNatureBasedSlide || isVideo ? 'Video saved permanently!' : 'Image saved permanently!');
-      setSaveSuccessToast(true);
-      playTennisPop(620);
-      setTimeout(() => setSaveSuccessToast(false), 2600);
-    } catch (err: unknown) {
-      console.error('Failed to process uploaded file', err);
-      const errMsg = err instanceof Error ? err.message : 'Unable to process this file format.';
-      setUploadError(errMsg);
-      setTimeout(() => setUploadError(null), 4500);
-    } finally {
-      setIsProcessingFile(false);
-      if (e.target) e.target.value = '';
-    }
-  };
-
-  // Handle URL save
-  const handleSaveUrl = () => {
-    if (!imageUrlInput.trim() || !currentSlide) return;
-    saveCustomImage(currentZoneKey, currentSlide.name, imageUrlInput.trim(), currentSlide.badge, currentSlide.id);
-    setCustomImageVersion((v) => v + 1);
-    setImageUrlInput('');
-    setIsImageModalOpen(false);
-    setToastMessage(isNatureBasedSlide || isVideo ? 'Video saved permanently!' : 'Image saved permanently!');
-    setSaveSuccessToast(true);
-    playTennisPop(620);
-    setTimeout(() => setSaveSuccessToast(false), 2600);
-  };
-
-  // Handle reset to default
-  const handleResetImage = () => {
-    if (!currentSlide) return;
-    removeCustomImage(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id);
-    setCustomImageVersion((v) => v + 1);
-    setIsImageModalOpen(false);
-    setToastMessage(isNatureBasedSlide ? 'Reset to default video' : 'Reset to default image');
-    setSaveSuccessToast(true);
-    playTennisPop(440);
-    setTimeout(() => setSaveSuccessToast(false), 2600);
-  };
-
   // Check if destination link is disabled for this slide
   const isLinkDisabled = currentSlide
     ? isSlideLinkDisabled(currentZoneKey, currentSlide.name, currentSlide.id)
     : false;
 
-  // Resolve custom user link
-  const customSavedLink = (currentSlide && !isLinkDisabled)
-    ? getCustomLink(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id)
-    : null;
-  const activeLink = !isLinkDisabled && (customSavedLink !== null
-    ? customSavedLink
-    : (currentSlide?.link || currentSlide?.url || ''));
+  // Resolve destination link for slide title (built-in default link or slide data link)
+  const activeLink = (!isLinkDisabled && currentSlide)
+    ? (currentSlide.link ||
+       currentSlide.url ||
+       getCustomLink(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id) ||
+       DEFAULT_LINKS[getSlideLinkKey(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id)] ||
+       DEFAULT_LINKS[getSlideLinkKey(currentZoneKey, currentSlide.name)] ||
+       '')
+    : '';
 
   // Check if current slide is L3 AV Auditory Framework paper slide
   const isAvPaperSlide = Boolean(
     currentSlide?.name?.toLowerCase().includes('auditory framework') ||
     currentSlide?.id?.includes('av')
   );
-
-  // Handle open link modal
-  const handleOpenLinkModal = () => {
-    setLinkUrlInput(activeLink || '');
-    setIsLinkModalOpen(true);
-  };
-
-  // Handle save link
-  const handleSaveLink = () => {
-    if (!currentSlide) return;
-    const trimmed = linkUrlInput.trim();
-    if (!trimmed) {
-      removeCustomLink(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id);
-      setToastMessage('Title link removed');
-    } else {
-      saveCustomLink(currentZoneKey, currentSlide.name, trimmed, currentSlide.badge, currentSlide.id);
-      setToastMessage('Title link saved permanently!');
-    }
-    setCustomLinkVersion((v) => v + 1);
-    setIsLinkModalOpen(false);
-    setSaveSuccessToast(true);
-    playTennisPop(660);
-    setTimeout(() => setSaveSuccessToast(false), 2600);
-  };
-
-  // Handle remove link
-  const handleRemoveLink = () => {
-    if (!currentSlide) return;
-    removeCustomLink(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id);
-    setCustomLinkVersion((v) => v + 1);
-    setLinkUrlInput('');
-    setIsLinkModalOpen(false);
-    setToastMessage('Title link removed');
-    setSaveSuccessToast(true);
-    playTennisPop(440);
-    setTimeout(() => setSaveSuccessToast(false), 2600);
-  };
-
-  // Drag & drop handlers
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (viewMode === 'interests') {
-      setIsDraggingFile(true);
-    }
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingFile(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDraggingFile(false);
-    if (viewMode !== 'interests' || !currentSlide) return;
-
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      setIsProcessingFile(true);
-      setUploadError(null);
-      try {
-        const processed = await processImageFile(file);
-        saveCustomImage(currentZoneKey, currentSlide.name, processed, currentSlide.badge, currentSlide.id);
-        setCustomImageVersion((v) => v + 1);
-        setSaveSuccessToast(true);
-        playTennisPop(640);
-        setTimeout(() => setSaveSuccessToast(false), 2600);
-      } catch (err) {
-        console.error('Drop error:', err);
-        setUploadError('Unable to process dropped file.');
-        setTimeout(() => setUploadError(null), 4000);
-      } finally {
-        setIsProcessingFile(false);
-      }
-    }
-  };
 
   // Slide transition variants: smooth fade for first entrance from cinematic, spring slide between interests
   const slideVariants: Variants = {
@@ -604,49 +412,8 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
         className="fixed inset-0 z-50 select-none overflow-hidden flex flex-col bg-transparent"
       >
-        {/* Hidden file input for permanent image or video upload */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleFileInputChange}
-          accept={isNatureBasedSlide ? "video/*,video/mp4,video/quicktime,video/webm,.mov,.MOV,.mp4,.MP4,.webm" : "image/*,.heic,.heif,.jpg,.jpeg,.png,.webp,.gif,video/*,.mp4,.mov"}
-          className="hidden"
-        />
-
-        {/* Drag & Drop Feedback Banner */}
-        {isDraggingFile && (
-          <div className="absolute inset-0 z-50 pointer-events-none bg-black/80 border-2 border-dashed border-[#C8A462] flex flex-col items-center justify-center p-8 backdrop-blur-md">
-            {isNatureBasedSlide ? (
-              <Video className="w-16 h-16 text-[#C8A462] animate-bounce mb-4" />
-            ) : (
-              <Upload className="w-16 h-16 text-[#C8A462] animate-bounce mb-4" />
-            )}
-            <h3 className="text-2xl font-serif text-[#F6F3ED] mb-2">
-              {isNatureBasedSlide ? 'Drop video to set permanently' : 'Drop image to set permanently'}
-            </h3>
-            <p className="text-sm font-mono text-[#D4CEBF]">Will save for: {currentSlide?.name}</p>
-          </div>
-        )}
-
-        {/* Permanent Save Toast Notification */}
-        <AnimatePresence>
-          {saveSuccessToast && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="absolute top-6 left-1/2 -translate-x-1/2 z-50 inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-[#1A1916] text-[#C8A462] border border-[#C8A462]/40 shadow-[0_0_25px_rgba(200,164,98,0.4)] text-xs font-mono backdrop-blur-md pointer-events-none"
-            >
-              <Check className="w-4 h-4" />
-              <span>{toastMessage || 'Saved permanently!'}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ============================================================ */}
         {/* CINEMATIC MODE: Macro Zoom View over 3D Tennis Racket       */}
@@ -756,28 +523,10 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
             transition={{ duration: 0.95, ease: [0.22, 1, 0.36, 1] }}
             className="relative w-full h-full overflow-hidden bg-[#0C0B0A]"
           >
-            {/* Minimal Top Bar: ONLY Back to Racket, Audio & Image Input (NO Top Nav Bar) */}
+            {/* Minimal Top Bar: ONLY Back to Racket & Audio Toggle */}
             <header className="absolute top-0 left-0 right-0 z-30 px-6 sm:px-10 py-6 flex items-center justify-between pointer-events-none">
-              {/* Left Control: Permanent Image Input Pill & Title Link Pill */}
+              {/* Left Control: Read Paper button for AV Paper Slide */}
               <div className="pointer-events-auto flex items-center space-x-2">
-                <button
-                  onClick={() => setIsImageModalOpen(true)}
-                  id="input-media-btn"
-                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-black/40 hover:bg-black/70 text-[#D4CEBF] hover:text-[#C8A462] transition-all duration-300 text-xs font-mono border border-white/10 hover:border-[#C8A462]/40 backdrop-blur-md cursor-pointer shadow-md"
-                  title={isNatureBasedSlide ? "Input permanent video for this project" : "Input permanent image for this project"}
-                >
-                  {isNatureBasedSlide ? (
-                    <Video className="w-3.5 h-3.5 text-[#E8C988]" />
-                  ) : (
-                    <Camera className="w-3.5 h-3.5" />
-                  )}
-                  <span>
-                    {isNatureBasedSlide
-                      ? (customSavedImage ? 'Change Video' : 'Input Video')
-                      : (customSavedImage ? 'Change Image' : 'Input Image')}
-                  </span>
-                </button>
-
                 {isAvPaperSlide && (
                   <button
                     onClick={() => setIsPaperModalOpen(true)}
@@ -787,23 +536,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                   >
                     <BookOpen className="w-3.5 h-3.5" />
                     <span>Read Paper</span>
-                  </button>
-                )}
-
-                {!isLinkDisabled && (
-                  <button
-                    onClick={handleOpenLinkModal}
-                    id="insert-link-header-btn"
-                    className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full transition-all duration-300 text-xs font-mono border backdrop-blur-md cursor-pointer shadow-md ${
-                      activeLink
-                        ? 'bg-[#C8A462]/20 hover:bg-[#C8A462]/35 text-[#E8C988] border-[#C8A462]/60 hover:border-[#C8A462]'
-                        : 'bg-black/40 hover:bg-black/70 text-[#D4CEBF] hover:text-[#C8A462] border-white/10 hover:border-[#C8A462]/40'
-                    }`}
-                    title={activeLink ? `Title linked to: ${activeLink} (click to edit)` : "Insert link into title"}
-                  >
-                    <Link2 className="w-3.5 h-3.5" />
-                    <span>{activeLink ? 'Edit Link' : 'Insert Link'}</span>
-                    {activeLink && <ExternalLink className="w-3 h-3 ml-0.5 opacity-80" />}
                   </button>
                 )}
               </div>
@@ -874,31 +606,34 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                       </div>
                     ) : isVideo ? (
                       isNatureBasedSlide ? (
-                        <div className="w-full h-full relative flex items-center justify-center overflow-hidden">
-                          {/* Centered Demo Video Layer */}
-                          <div className="relative z-10 w-full h-full flex items-center justify-center p-0">
-                            {activeImageUrl && !natureVideoError ? (
+                        <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-[#0C0B0A]">
+                          {/* Centered Demo Video Layer: strictly plays CPM 08 Prototype, or left blank if it fails */}
+                          {!natureVideoError ? (
+                            <div className="relative z-10 w-full h-full flex items-center justify-center p-0">
                               <div className="relative flex items-center justify-center w-full h-full">
                                 <video
                                   ref={natureVideoRef}
-                                  key={`nature-video-${activeImageUrl}`}
+                                  key="nature-video-cpm-08"
                                   autoPlay
                                   loop
                                   muted={isMuted}
                                   playsInline
                                   preload="auto"
-                                  onError={() => setNatureVideoError(true)}
                                   onLoadedData={(e) => {
+                                    setNatureVideoError(false);
                                     e.currentTarget.play().catch(() => {});
+                                  }}
+                                  onError={() => {
+                                    setNatureVideoError(true);
                                   }}
                                   onClick={handleTogglePlayVideo}
                                   className="w-full h-full object-cover cursor-pointer opacity-100 transition-opacity duration-300"
-                                  style={{ objectPosition: '55% 45%' }}
+                                  style={{ objectPosition: 'center center' }}
                                 >
-                                  <source src={activeImageUrl} type="video/mp4" />
-                                  <source src={activeImageUrl} type="video/quicktime" />
-                                  <source src="/cpm_08_prototype.mp4" type="video/mp4" />
-                                  <source src="/IMG_0904.MOV" type="video/quicktime" />
+                                  <source src="/cpm 08 prototype video.mov" type="video/quicktime" />
+                                  <source src="/cpm%2008%20prototype%20video.mov" type="video/quicktime" />
+                                  <source src="/cpm_08_prototype.mov" type="video/quicktime" />
+                                  <source src="/cpm_08_prototype.mp4" type="video/mp4" onError={() => setNatureVideoError(true)} />
                                 </video>
 
                                 {/* Interactive Play/Pause button when video is paused */}
@@ -912,39 +647,11 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                                   </button>
                                 )}
                               </div>
-                            ) : (
-                              /* Dedicated CPM 08 Prototype Video Upload Hub */
-                              <div className="w-full h-full bg-[#11100E] relative flex items-center justify-center p-6 text-center">
-                                <div className="absolute inset-0 bg-[radial-gradient(#C8A462_1px,transparent_1px)] [background-size:48px_48px] opacity-15" />
-                                <div className="relative z-10 max-w-md flex flex-col items-center">
-                                  <div className="w-16 h-16 rounded-2xl bg-[#C8A462]/10 border border-[#C8A462]/30 flex items-center justify-center mb-4 text-[#C8A462] shadow-lg">
-                                    <Video className="w-8 h-8" />
-                                  </div>
-                                  <h3 className="text-xl font-serif text-[#F6F3ED] font-semibold mb-2">
-                                    CPM 08 Prototype Video
-                                  </h3>
-                                  <p className="text-xs text-[#A8A294] font-mono mb-6 max-w-sm leading-relaxed">
-                                    Drop your prototype video file (.mov or .mp4) anywhere on this screen, or click below to select it from your device.
-                                  </p>
-                                  <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
-                                    <button
-                                      onClick={() => fileInputRef.current?.click()}
-                                      className="px-5 py-2.5 rounded-xl bg-[#C8A462] hover:bg-[#D4B272] text-[#161513] font-mono text-xs font-bold uppercase tracking-wider transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center gap-2"
-                                    >
-                                      <Upload className="w-4 h-4" />
-                                      <span>Select Video File</span>
-                                    </button>
-                                    <button
-                                      onClick={() => setIsImageModalOpen(true)}
-                                      className="px-4 py-2.5 rounded-xl bg-[#1D1B18] hover:bg-[#2A2722] text-[#C8A462] border border-[#C8A462]/30 font-mono text-xs transition-all cursor-pointer active:scale-95"
-                                    >
-                                      Paste Video Link
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                            </div>
+                          ) : (
+                            /* Left completely blank if video does not work — never fallback to tennis video */
+                            <div className="w-full h-full bg-[#0C0B0A]" />
+                          )}
                         </div>
                       ) : (
                         <video
@@ -1013,26 +720,16 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                         }`}
                       />
                     ) : (
-                      /* Minimalist Canvas for projects without an image or video yet */
+                      /* Minimalist Canvas for projects without an image or video */
                       <div className="w-full h-full bg-[#11100E] relative flex items-center justify-center">
                         <div className="absolute inset-0 bg-[radial-gradient(#C8A462_1px,transparent_1px)] [background-size:48px_48px] opacity-15" />
                         <div className="w-[500px] h-[500px] rounded-full border border-[#C8A462]/15 blur-[1px]" />
-                        <div className="absolute flex flex-col items-center text-center p-6 max-w-md">
-                          <button
-                            onClick={() => setIsImageModalOpen(true)}
-                            className="group p-4 rounded-full bg-[#C8A462]/10 hover:bg-[#C8A462]/20 border border-[#C8A462]/30 text-[#C8A462] transition-all cursor-pointer mb-3 shadow-lg"
-                            title={isNatureBasedSlide ? "Input a video" : "Upload an image"}
-                          >
-                            {isNatureBasedSlide ? (
-                              <Video className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                            ) : (
-                              <Upload className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                            )}
-                          </button>
+                        <div className="relative z-10 flex flex-col items-center text-center p-6 max-w-md">
+                          <div className="w-14 h-14 rounded-2xl bg-[#C8A462]/10 border border-[#C8A462]/25 flex items-center justify-center mb-3 text-[#C8A462] shadow-lg">
+                            <Sparkles className="w-6 h-6" />
+                          </div>
                           <span className="text-xs font-mono text-[#A8A294]">
-                            {isNatureBasedSlide
-                              ? 'Drop a video or click "Input Video" to set permanently'
-                              : 'Drop an image or click "Input Image" to set permanently'}
+                            {currentSlide?.badge || currentSlide?.name}
                           </span>
                         </div>
                       </div>
@@ -1102,17 +799,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                           <BookOpen className="w-3.5 h-3.5" />
                           <span>Read Paper</span>
                         </button>
-
-                        {/* Quick Edit Link Trigger */}
-                        <button
-                          onClick={handleOpenLinkModal}
-                          id={`edit-title-link-btn-${currentIndex}`}
-                          className="opacity-70 hover:opacity-100 inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-black/50 hover:bg-black/80 text-[#D4CEBF] hover:text-[#C8A462] text-xs font-mono border border-white/10 hover:border-[#C8A462]/50 backdrop-blur-sm transition-all cursor-pointer shadow-sm active:scale-95"
-                          title="Edit destination link or Google Docs URL"
-                        >
-                          <Link2 className="w-3 h-3" />
-                          <span className="hidden sm:inline">Edit Link</span>
-                        </button>
                       </div>
                     ) : activeLink ? (
                       <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
@@ -1149,17 +835,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                             <span>Read Paper</span>
                           </button>
                         )}
-
-                        {/* Quick Edit Link Trigger */}
-                        <button
-                          onClick={handleOpenLinkModal}
-                          id={`edit-title-link-btn-${currentIndex}`}
-                          className="opacity-70 hover:opacity-100 inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-black/50 hover:bg-black/80 text-[#D4CEBF] hover:text-[#C8A462] text-xs font-mono border border-white/10 hover:border-[#C8A462]/50 backdrop-blur-sm transition-all cursor-pointer shadow-sm active:scale-95"
-                          title="Edit destination link"
-                        >
-                          <Link2 className="w-3 h-3" />
-                          <span className="hidden sm:inline">Edit Link</span>
-                        </button>
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
@@ -1175,17 +850,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                           >
                             <BookOpen className="w-3.5 h-3.5" />
                             <span>Read Paper</span>
-                          </button>
-                        )}
-                        {!isLinkDisabled && (
-                          <button
-                            onClick={handleOpenLinkModal}
-                            id={`insert-title-link-btn-${currentIndex}`}
-                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#C8A462]/15 hover:bg-[#C8A462]/30 text-[#E8C988] hover:text-white text-xs font-mono border border-[#C8A462]/40 hover:border-[#C8A462] backdrop-blur-sm transition-all duration-300 cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-                            title="Insert clickable destination link for this title"
-                          >
-                            <Link2 className="w-3.5 h-3.5 text-[#C8A462]" />
-                            <span>+ Insert Link</span>
                           </button>
                         )}
                       </div>
@@ -1259,219 +923,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
             </div>
           </motion.div>
         )}
-
-        {/* ============================================================ */}
-        {/* PERMANENT IMAGE INPUT MODAL                                   */}
-        {/* ============================================================ */}
-        <AnimatePresence>
-          {isImageModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="relative w-full max-w-md rounded-2xl bg-[#181714] border border-[#E6DECE]/15 p-6 shadow-2xl text-[#F6F3ED]"
-              >
-                {/* Close Button */}
-                <button
-                  onClick={() => setIsImageModalOpen(false)}
-                  className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-[#A8A294] hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
-                <h3 className="text-xl font-serif font-medium mb-1">
-                  {isNatureBasedSlide ? 'Set Project Video' : 'Set Project Image'}
-                </h3>
-                <p className="text-xs font-mono text-[#A8A294] mb-6">
-                  {currentSlide?.name} {currentSlide?.badge ? `(${currentSlide.badge})` : ''} • Stays permanently across reloads
-                </p>
-
-                {/* Option A: Upload from Device */}
-                <div className="mb-5">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isProcessingFile}
-                    className="w-full flex items-center justify-center space-x-2.5 py-3.5 px-4 rounded-xl bg-[#C8A462] hover:bg-[#D4B272] text-[#161513] font-bold text-xs font-mono uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-60"
-                  >
-                    {isProcessingFile ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-[#161513] border-t-transparent rounded-full animate-spin" />
-                        <span>Processing & Optimizing...</span>
-                      </>
-                    ) : (
-                      <>
-                        {isNatureBasedSlide ? <Video className="w-4 h-4" /> : <Upload className="w-4 h-4" />}
-                        <span>{isNatureBasedSlide ? 'Upload Video From Device' : 'Upload From Device'}</span>
-                      </>
-                    )}
-                  </button>
-                  <p className="text-[11px] text-center text-[#8C8577] mt-2 font-mono">
-                    {isNatureBasedSlide
-                      ? 'Supports MP4, MOV, WebM, QuickTime up to 80MB'
-                      : 'Supports JPG, PNG, WEBP, HEIC (iPhone) & Videos'}
-                  </p>
-
-                  {uploadError && (
-                    <div className="mt-3 p-2.5 rounded-lg bg-red-950/40 border border-red-500/30 text-[11px] font-mono text-red-300 text-center">
-                      {uploadError}
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative flex py-2 items-center mb-5">
-                  <div className="flex-grow border-t border-white/10"></div>
-                  <span className="flex-shrink mx-3 text-xs font-mono text-[#736E63] uppercase">Or</span>
-                  <div className="flex-grow border-t border-white/10"></div>
-                </div>
-
-                {/* Option B: Enter URL */}
-                <div className="space-y-3 mb-6">
-                  <label className="block text-xs font-mono text-[#C4BCA8]">
-                    {isNatureBasedSlide ? 'Video URL, YouTube, or Local Video Path:' : 'Image URL or Local Path:'}
-                  </label>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative flex-1">
-                      <LinkIcon className="w-3.5 h-3.5 text-[#736E63] absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        value={imageUrlInput}
-                        onChange={(e) => setImageUrlInput(e.target.value)}
-                        placeholder={isNatureBasedSlide ? "e.g. https://youtu.be/... or /IMG_0904.MOV" : "/IMG_0155.jpg or https://..."}
-                        className="w-full bg-[#23211D] border border-white/10 rounded-lg pl-9 pr-3 py-2 text-xs text-white placeholder:text-[#5E5A51] focus:outline-none focus:border-[#C8A462]"
-                      />
-                    </div>
-                    <button
-                      onClick={handleSaveUrl}
-                      disabled={!imageUrlInput.trim()}
-                      className="px-4 py-2 rounded-lg bg-[#2A2722] hover:bg-[#34302A] text-xs font-mono text-[#C8A462] border border-[#C8A462]/30 disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-
-                {/* Option C: Reset to Default (if custom image exists) */}
-                {customSavedImage && (
-                  <div className="pt-3 border-t border-white/10 flex justify-between items-center">
-                    <span className="text-xs text-[#A8A294] font-mono">
-                      {isNatureBasedSlide ? 'Custom video active' : 'Custom image active'}
-                    </span>
-                    <button
-                      onClick={handleResetImage}
-                      className="inline-flex items-center space-x-1.5 text-xs text-red-400 hover:text-red-300 transition-colors font-mono cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>{isNatureBasedSlide ? 'Reset to default video' : 'Reset to default'}</span>
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* ============================================================ */}
-        {/* INSERT / EDIT TITLE LINK MODAL DIALOG                          */}
-        {/* Persistent localStorage saving, custom to this specific slide */}
-        {/* ============================================================ */}
-        <AnimatePresence>
-          {isLinkModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                className="relative w-full max-w-md rounded-2xl bg-[#181714] border border-[#E6DECE]/15 p-6 shadow-2xl text-[#F6F3ED]"
-              >
-                {/* Close Button */}
-                <button
-                  onClick={() => setIsLinkModalOpen(false)}
-                  className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-[#A8A294] hover:text-white transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-
-                <div className="flex items-center space-x-2.5 mb-1.5">
-                  <div className="p-2 rounded-lg bg-[#C8A462]/15 text-[#C8A462] border border-[#C8A462]/30">
-                    <Globe className="w-4 h-4" />
-                  </div>
-                  <h3 className="text-xl font-serif font-medium">
-                    {activeLink ? 'Edit Title Link' : 'Insert Title Link'}
-                  </h3>
-                </div>
-
-                <p className="text-xs font-mono text-[#A8A294] mb-5">
-                  Slide: <span className="text-[#E8C988]">{currentSlide?.name}</span> {currentSlide?.badge ? `(${currentSlide.badge})` : ''} • Stays permanently across reloads
-                </p>
-
-                {/* URL Input Form */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSaveLink();
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <label className="block text-xs font-mono text-[#C4BCA8] mb-1.5">
-                      Destination URL:
-                    </label>
-                    <div className="relative">
-                      <LinkIcon className="w-3.5 h-3.5 text-[#736E63] absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        autoFocus
-                        value={linkUrlInput}
-                        onChange={(e) => setLinkUrlInput(e.target.value)}
-                        placeholder="https://example.com or github.com/..."
-                        className="w-full bg-[#23211D] border border-white/15 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder:text-[#5E5A51] focus:outline-none focus:border-[#C8A462] focus:ring-1 focus:ring-[#C8A462]"
-                      />
-                    </div>
-                    <p className="text-[11px] text-[#8C8577] mt-1.5 font-mono">
-                      Users clicking the title will be navigated to this destination in a new tab.
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center justify-end space-x-2.5 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsLinkModalOpen(false)}
-                      className="px-3.5 py-2 rounded-xl bg-transparent hover:bg-white/5 text-xs font-mono text-[#A8A294] hover:text-white transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-5 py-2 rounded-xl bg-[#C8A462] hover:bg-[#D4B272] text-[#161513] font-bold text-xs font-mono uppercase tracking-wider transition-all cursor-pointer shadow-md"
-                    >
-                      Save Link
-                    </button>
-                  </div>
-                </form>
-
-                {/* Reset / Remove Link Option */}
-                {activeLink && (
-                  <div className="mt-5 pt-4 border-t border-white/10 flex justify-between items-center">
-                    <div className="flex items-center space-x-1.5 text-xs text-[#A8A294] font-mono truncate max-w-[200px]">
-                      <ExternalLink className="w-3 h-3 text-[#C8A462] shrink-0" />
-                      <span className="truncate" title={activeLink}>{activeLink}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleRemoveLink}
-                      className="inline-flex items-center space-x-1.5 text-xs text-red-400 hover:text-red-300 transition-colors font-mono cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Remove link</span>
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
 
         {/* Attached Academic Paper Modal for L3 AV Auditory Framework */}
         <AuditoryFrameworkPaperModal

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ProjectImage } from '../types';
-import { Image as ImageIcon, Video as VideoIcon, Maximize2, X, Upload, RefreshCw } from 'lucide-react';
+import { Image as ImageIcon, Video as VideoIcon, Maximize2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ProjectMediaGalleryProps {
@@ -14,7 +14,6 @@ const MediaItemView: React.FC<{
   onExpand?: (src: string, isVideo: boolean) => void;
   isCompact?: boolean;
 }> = ({ item, onExpand, isCompact }) => {
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const rawUrl = item.imageUrl || '';
   const cleanFileName = rawUrl.split('/').pop()?.split('?')[0] || 'Media file';
   
@@ -36,9 +35,7 @@ const MediaItemView: React.FC<{
       const dotIndex = cleanFileName.lastIndexOf('.');
       const baseName = dotIndex !== -1 ? cleanFileName.substring(0, dotIndex) : cleanFileName;
       
-      // If filename has parentheses like "IMG_2806 (online-video-cutter.com)"
       const strippedBase = baseName.replace(/\s*\([^)]*\)/g, '').trim();
-
       const baseVariants = Array.from(new Set([baseName, strippedBase].filter(Boolean)));
 
       baseVariants.forEach((b) => {
@@ -63,8 +60,6 @@ const MediaItemView: React.FC<{
   const [activeUrl, setActiveUrl] = useState<string>(currentCandidateUrl);
   const [loadError, setLoadError] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
 
   const isVideo = item.isVideo || /\.(mp4|mov|webm|m4v)(\?.*)?$/i.test(activeUrl) || /\.(mp4|mov|webm|m4v)(\?.*)?$/i.test(cleanFileName);
   const isHeic = /\.(heic)(\?.*)?$/i.test(activeUrl);
@@ -77,7 +72,7 @@ const MediaItemView: React.FC<{
     }
   };
 
-  // Check if candidate URL actually exists on the server to prevent blank video tags
+  // Check if candidate URL exists
   useEffect(() => {
     let active = true;
     let objectUrl: string | null = null;
@@ -88,7 +83,6 @@ const MediaItemView: React.FC<{
       return;
     }
 
-    // Fast HEAD check so non-existent videos immediately show the upload button
     fetch(currentCandidateUrl, { method: 'HEAD' })
       .then((res) => {
         if (!active) return;
@@ -139,121 +133,26 @@ const MediaItemView: React.FC<{
     };
   }, [currentCandidateUrl]);
 
-  const processFile = async (file: File) => {
-    const blobUrl = URL.createObjectURL(file);
-    setActiveUrl(blobUrl);
-    setLoadError(false);
-    setIsUploading(true);
-
-    try {
-      const targetFilename = cleanFileName || file.name;
-      await fetch(`/api/upload-media?filename=${encodeURIComponent(targetFilename)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': file.type || 'application/octet-stream',
-        },
-        body: file,
-      });
-      // Also upload under the actual original file name if different
-      if (file.name !== targetFilename) {
-        await fetch(`/api/upload-media?filename=${encodeURIComponent(file.name)}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': file.type || 'application/octet-stream',
-          },
-          body: file,
-        });
-      }
-    } catch (err) {
-      console.warn('Could not persist media to server:', err);
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleManualUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processFile(file);
-    }
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    const file = e.dataTransfer.files?.[0];
-    if (file) {
-      processFile(file);
-    }
-  };
-
-  const fileAcceptTypes = isVideo
-    ? 'video/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.MOV,.webm'
-    : 'image/*,image/jpeg,image/png,image/heic,.jpg,.jpeg,.png,.heic,.HEIC';
-
-  // Fallback Upload Container
+  // Clean Fallback Placeholder (read-only, no upload options)
   if (loadError) {
     return (
-      <div 
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-        className={`flex flex-col items-center justify-center p-6 rounded-xl warm-panel-subtle border text-center min-h-[190px] sm:min-h-[220px] transition-all ${
-          isDragging ? 'border-[#C8A462] bg-[#C8A462]/10 scale-[1.01]' : 'border-[#E6DECE]/15 hover:border-[#C8A462]/40'
-        }`}
-      >
+      <div className="flex flex-col items-center justify-center p-6 rounded-xl warm-panel-subtle border border-[#E6DECE]/15 text-center min-h-[190px] sm:min-h-[220px]">
         {isVideo ? (
-          <VideoIcon className="w-9 h-9 text-[#C8A462] mb-2.5 animate-pulse" />
+          <VideoIcon className="w-9 h-9 text-[#C8A462] mb-2.5 opacity-80" />
         ) : (
-          <ImageIcon className="w-9 h-9 text-[#C8A462] mb-2.5" />
+          <ImageIcon className="w-9 h-9 text-[#C8A462] mb-2.5 opacity-80" />
         )}
         <span className="text-xs font-mono text-[#F6F3ED] font-semibold tracking-wide">
           {cleanFileName}
         </span>
-        <p className="text-[11px] text-[#A8A294] mt-1.5 max-w-xs leading-relaxed">
-          {isVideo 
-            ? 'Video pending upload. Drag & drop your video file here or click below.' 
-            : 'Image pending upload. Drag & drop your photo file here or click below.'}
-        </p>
-        
-        {/* Instant File Upload Button */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleManualUpload}
-          accept={fileAcceptTypes}
-          className="hidden"
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#C8A462] hover:bg-[#D6B575] text-[#161513] text-xs font-bold font-mono uppercase tracking-wider transition-colors cursor-pointer shadow-md disabled:opacity-50"
-        >
-          <Upload className="w-3.5 h-3.5" />
-          <span>{isUploading ? 'Uploading & saving...' : isVideo ? 'Choose video to upload' : 'Choose photo to upload'}</span>
-        </button>
       </div>
     );
   }
 
-  // Video Player with drag-over & replace support
+  // Video Player View (read-only, no upload/replace)
   if (isVideo) {
     return (
-      <div 
-        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={handleDrop}
-        className="relative group overflow-hidden rounded-xl border border-[#E6DECE]/15 bg-[#0C0B0A] shadow-md"
-      >
-        {/* Hidden File Input for Video */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleManualUpload}
-          accept={fileAcceptTypes}
-          className="hidden"
-        />
-
+      <div className="relative group overflow-hidden rounded-xl border border-[#E6DECE]/15 bg-[#0C0B0A] shadow-md">
         <video
           key={activeUrl}
           src={activeUrl}
@@ -267,17 +166,8 @@ const MediaItemView: React.FC<{
           Your browser does not support the video tag.
         </video>
 
-        {/* Action button overlay on video */}
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-2.5 py-1.5 rounded-lg bg-black/75 hover:bg-black text-[#F6F3ED] text-[11px] font-mono flex items-center gap-1 backdrop-blur-sm border border-white/15 cursor-pointer shadow-sm"
-            title="Upload or replace this video"
-          >
-            <RefreshCw className="w-3 h-3 text-[#C8A462]" />
-            <span>Replace Video</span>
-          </button>
-          {onExpand && (
+        {onExpand && (
+          <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => onExpand(activeUrl, true)}
               className="p-1.5 rounded-lg bg-black/75 hover:bg-black text-[#F6F3ED] backdrop-blur-sm border border-white/15 cursor-pointer shadow-sm"
@@ -285,13 +175,6 @@ const MediaItemView: React.FC<{
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </button>
-          )}
-        </div>
-
-        {isDragging && (
-          <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-4 text-center z-10 border-2 border-dashed border-[#C8A462]">
-            <Upload className="w-8 h-8 text-[#C8A462] mb-2 animate-bounce" />
-            <span className="text-xs font-mono text-[#F6F3ED]">Drop your video file to upload</span>
           </div>
         )}
 
@@ -304,22 +187,9 @@ const MediaItemView: React.FC<{
     );
   }
 
-  // Photo View
+  // Photo View (read-only, no upload/replace)
   return (
-    <div 
-      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-      onDragLeave={() => setIsDragging(false)}
-      onDrop={handleDrop}
-      className="relative group overflow-hidden rounded-xl border border-[#E6DECE]/15 bg-[#0C0B0A] shadow-md"
-    >
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleManualUpload}
-        accept={fileAcceptTypes}
-        className="hidden"
-      />
-
+    <div className="relative group overflow-hidden rounded-xl border border-[#E6DECE]/15 bg-[#0C0B0A] shadow-md">
       {isConverting ? (
         <div className="flex flex-col items-center justify-center p-8 min-h-[180px] warm-panel-subtle">
           <div className="w-5 h-5 border-2 border-[#C8A462] border-t-transparent rounded-full animate-spin mb-2" />
@@ -338,16 +208,8 @@ const MediaItemView: React.FC<{
             }}
             className={`w-full ${item.height ? '' : isCompact ? 'max-h-64' : 'max-h-96'} object-cover transition-transform duration-300 group-hover:scale-[1.01] ${item.className || ''}`}
           />
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-2.5 py-1.5 rounded-lg bg-black/75 hover:bg-black text-[#F6F3ED] text-[11px] font-mono flex items-center gap-1 backdrop-blur-sm border border-white/15 cursor-pointer shadow-sm"
-              title="Upload or replace this photo"
-            >
-              <RefreshCw className="w-3 h-3 text-[#C8A462]" />
-              <span>Replace</span>
-            </button>
-            {onExpand && (
+          {onExpand && (
+            <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => onExpand(activeUrl, false)}
                 className="p-1.5 rounded-lg bg-black/75 hover:bg-black text-[#F6F3ED] backdrop-blur-sm border border-white/15 cursor-pointer shadow-sm"
@@ -355,15 +217,8 @@ const MediaItemView: React.FC<{
               >
                 <Maximize2 className="w-3.5 h-3.5" />
               </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {isDragging && (
-        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center p-4 text-center z-10 border-2 border-dashed border-[#C8A462]">
-          <Upload className="w-8 h-8 text-[#C8A462] mb-2 animate-bounce" />
-          <span className="text-xs font-mono text-[#F6F3ED]">Drop your photo to upload</span>
+            </div>
+          )}
         </div>
       )}
 
