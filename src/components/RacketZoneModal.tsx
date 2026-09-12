@@ -262,9 +262,9 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
     ? getCustomImage(currentZoneKey, currentSlide.name, currentSlide.badge, currentSlide.id)
     : null;
 
-  // Nature-Based slide strictly plays CPM 08 Prototype video
+  // Nature-Based slide strictly plays Nature App Video
   const activeImageUrl = isNatureBasedSlide
-    ? '/cpm%2008%20prototype%20video.mov'
+    ? '/nature_app_video.mp4'
     : ((customSavedImage && customSavedImage.trim().length > 0)
         ? customSavedImage
         : (defaultActiveImage?.imageUrl || ''));
@@ -607,13 +607,13 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                     ) : isVideo ? (
                       isNatureBasedSlide ? (
                         <div className="w-full h-full relative flex items-center justify-center overflow-hidden bg-[#0C0B0A]">
-                          {/* Centered Demo Video Layer: strictly plays CPM 08 Prototype, or left blank if it fails */}
+                          {/* Centered Demo Video Layer: strictly plays Nature App Video, or left blank if it fails */}
                           {!natureVideoError ? (
-                            <div className="relative z-10 w-full h-full flex items-center justify-center p-0">
+                            <div className="w-full h-full flex items-center justify-center p-0">
                               <div className="relative flex items-center justify-center w-full h-full">
                                 <video
                                   ref={natureVideoRef}
-                                  key="nature-video-cpm-08"
+                                  key="nature-video-nature-app"
                                   autoPlay
                                   loop
                                   muted={isMuted}
@@ -630,10 +630,10 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                                   className="w-full h-full object-cover cursor-pointer opacity-100 transition-opacity duration-300"
                                   style={{ objectPosition: 'center center' }}
                                 >
-                                  <source src="/cpm 08 prototype video.mov" type="video/quicktime" />
-                                  <source src="/cpm%2008%20prototype%20video.mov" type="video/quicktime" />
-                                  <source src="/cpm_08_prototype.mov" type="video/quicktime" />
-                                  <source src="/cpm_08_prototype.mp4" type="video/mp4" onError={() => setNatureVideoError(true)} />
+                                  <source src="/nature_app_video.mp4" type="video/mp4" />
+                                  <source src="/nature_app_video.mov" type="video/quicktime" />
+                                  <source src="/nature app video.mov" type="video/quicktime" />
+                                  <source src="/nature%20app%20video.mov" type="video/quicktime" onError={() => setNatureVideoError(true)} />
                                 </video>
 
                                 {/* Interactive Play/Pause button when video is paused */}
@@ -738,10 +738,10 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
 
                   {/* Cinematic Dark Gradient Overlays */}
                   <div
-                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-t from-black/75 via-black/30 to-transparent"
+                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-t from-black/75 via-black/30 to-transparent z-10"
                   />
                   <div
-                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-r from-black/55 via-transparent to-black/25"
+                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-r from-black/55 via-transparent to-black/25 z-10"
                   />
 
                   {/* Kinetic Downward Transition Accent Line */}
