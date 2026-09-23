@@ -125,8 +125,11 @@ if (typeof window !== 'undefined') {
           removeFromIndexedDB(k);
           modified = true;
         }
-        // Purge any stale tft-scaling images so IMG_3371.jpg is used permanently
-        if ((k.includes('tft_scaling') || (k.includes('tech_for_tomorrow') && k.includes('scaling'))) && (parsed[k]?.startsWith('data:image/') || parsed[k]?.includes('tft_community_workshop'))) {
+        // Purge any stale TFT sweetspot images so the configured portfolioData images are used permanently
+        if (
+          k.includes('sweetspot') &&
+          (k.includes('tft') || k.includes('tomorrow') || k.includes('scaling') || k.includes('teaching') || k.includes('starter'))
+        ) {
           delete parsed[k];
           delete memoryCache[k];
           removeFromIndexedDB(k);
@@ -153,8 +156,8 @@ if (typeof window !== 'undefined') {
           removeFromIndexedDB(k);
           modified = true;
         }
-        // Purge any stale TFT grip operations images so oakpickupimage2.jpg is used permanently
-        if (((k.includes('grip') && k.includes('tft')) || k.includes('tft_operations')) && (parsed[k]?.startsWith('data:image/') || !parsed[k]?.includes('oakpickupimage2'))) {
+        // Purge any stale TFT grip operations images so t4t_starter_guide_ss.png is used permanently
+        if (((k.includes('grip') && k.includes('tft')) || k.includes('tft_operations')) && (parsed[k]?.startsWith('data:image/') || !parsed[k]?.includes('starter'))) {
           delete parsed[k];
           delete memoryCache[k];
           removeFromIndexedDB(k);
@@ -180,7 +183,10 @@ if (typeof window !== 'undefined') {
         delete memoryCache[k];
         continue;
       }
-      if ((k.includes('tft_scaling') || (k.includes('tech_for_tomorrow') && k.includes('scaling'))) && (v.startsWith('data:image/') || v.includes('tft_community_workshop'))) {
+      if (
+        k.includes('sweetspot') &&
+        (k.includes('tft') || k.includes('tomorrow') || k.includes('scaling') || k.includes('teaching') || k.includes('starter'))
+      ) {
         removeFromIndexedDB(k);
         delete memoryCache[k];
         continue;
@@ -200,7 +206,7 @@ if (typeof window !== 'undefined') {
         delete memoryCache[k];
         continue;
       }
-      if (((k.includes('grip') && k.includes('tft')) || k.includes('tft_operations')) && (v.startsWith('data:image/') || !v.includes('oakpickupimage2'))) {
+      if (((k.includes('grip') && k.includes('tft')) || k.includes('tft_operations')) && (v.startsWith('data:image/') || !v.includes('starter'))) {
         removeFromIndexedDB(k);
         delete memoryCache[k];
         continue;

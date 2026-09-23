@@ -47,6 +47,25 @@ export const portfolioData: PortfolioContent = {
         skills: ['Empathic Mentorship', 'Individualized Pedagogy', 'Communication & Trust', 'Psychological Encouragement']
       },
       {
+        id: 'tft-teaching',
+        name: 'Tech For Tomorrow',
+        badge: 'Teaching & Digital Literacy',
+        highlights: [
+          'Led student and community technology education workshops, developing accessible hands-on digital literacy curricula',
+          'Taught foundational computing skills, software workflows, and guided students through hands-on hardware refurbishment'
+        ],
+        summary: 'I helped facilitate STEM digital literacy instruction, empowering underserved students and community members with technology education and foundational computing skills in Scratch.',
+        images: [
+          {
+            id: 'tft-teaching-img-1',
+            imageUrl: '/IMG_3371.jpg',
+            objectPosition: 'center 68%'
+          }
+        ],
+        stats: ['Hands-On Digital Workshops', '500+ Students Instructed', 'Interactive Curriculum Design'],
+        skills: ['Curriculum Development', 'Student Instruction', 'Digital Literacy Mentorship', 'Community Workshops']
+      },
+      {
         id: 'tft-scaling',
         name: 'Tech For Tomorrow',
         badge: 'Scaling Stats',
@@ -59,29 +78,12 @@ export const portfolioData: PortfolioContent = {
         images: [
           {
             id: 'tft-scaling-img-1',
-            imageUrl: '/IMG_3371.jpg'
+            imageUrl: '/oakpickupimage2.jpg',
+            objectPosition: 'center 30%'
           }
         ],
         stats: ['11 Chapters Nationwide', '$30,000 Refurbished Tech', '$5,000 Direct International Aid'],
         skills: ['Multi-Chapter GTM', 'Logistics Supply Chain', 'Stakeholder Management', 'Impact Auditing']
-      },
-      {
-        id: 'tft-teaching',
-        name: 'Tech For Tomorrow',
-        badge: 'Teaching & Digital Literacy',
-        highlights: [
-          'Led student and community technology education workshops, developing accessible hands-on digital literacy curricula',
-          'Taught foundational computing skills, software workflows, and guided students through hands-on hardware refurbishment'
-        ],
-        summary: 'I helped facilitate STEM digital literacy instruction, empowering underserved students and community members with technology education and foundational computing skills in Scratch.',
-        images: [
-          {
-            id: 'tft-teaching-img-1',
-            imageUrl: '/oakpickupimage2.jpg'
-          }
-        ],
-        stats: ['Hands-On Digital Workshops', '500+ Students Instructed', 'Interactive Curriculum Design'],
-        skills: ['Curriculum Development', 'Student Instruction', 'Digital Literacy Mentorship', 'Community Workshops']
       }
     ]
   },
@@ -90,13 +92,13 @@ export const portfolioData: PortfolioContent = {
     title: 'The Strings',
     subtitle: 'Navigating Friction, Trade-offs & Priorities',
     label: 'Strategic Tension & Trade-offs',
-    metaphor: 'Stringing higher tension gives control while lower tension gives power. In my work the strings represent making smart trade offs between speed and quality to hit the right target.',
+    metaphor: 'Stringing higher tension gives control while lower tension gives power. In my work the strings represent making smart trade offs between speed and control to hit the right target.',
     racketSpec: 'Babolat RPM Blast 16 (1.30mm) • 52 lbs Mains / 50 lbs Crosses • Clean Poly Matrix',
     projects: [
       {
         name: 'Nature-Based Recreational Apps (SIP 2025)',
         badge: 'User vs. Eco Friction',
-        link: 'https://www.canva.com/design/DAGNHKcH9WQ/4TR-r2zP1hB1eUTbhNQbHg/edit',
+        link: 'https://docs.google.com/presentation/d/1RHfrX5MM30r83VJPm1BKWMIdmLIdWCMisOss8JXdRzQ/edit',
         highlights: [
           'Balanced rider UX engagement against ecological nature degradation constraints'
         ],
@@ -244,7 +246,8 @@ export const portfolioData: PortfolioContent = {
         images: [
           {
             id: 'tft-grip-img',
-            imageUrl: '/oakpickupimage2.jpg'
+            imageUrl: '/t4t_starter_guide_ss.png',
+            objectPosition: 'right 12%'
           }
         ],
         stats: ['National Chapter Playbook', 'Hardware QA Pipeline', 'International Customs Logistics'],

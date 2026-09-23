@@ -274,6 +274,35 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
     activeImageUrl?.toLowerCase().includes('spritz')
   );
 
+  const isOperationalSlide = Boolean(
+    currentSlide?.id === 'tft-scaling' ||
+    currentSlide?.summary?.toLowerCase().includes('operational procedures')
+  );
+
+  const getSlideObjectPosition = (imgUrl?: string, customPos?: string) => {
+    if (customPos) return customPos;
+    if (defaultActiveImage?.objectPosition) return defaultActiveImage.objectPosition;
+    const url = (imgUrl || activeImageUrl || '').toLowerCase();
+    if (url.includes('dsc00474') || defaultActiveImage?.id === 'tennis-img-1') return 'center 28%';
+    if (url.includes('img_3371') || currentSlide?.id === 'tft-teaching') return 'center 68%';
+    if (
+      url.includes('starter') ||
+      url.includes('guide') ||
+      currentSlide?.id === 'tft-operations' ||
+      currentSlide?.id === 'tft-starter-guide'
+    ) {
+      return 'right 12%';
+    }
+    if (url.includes('img_1586')) return 'center 24%';
+    if (
+      url.includes('oakpickupimage2') ||
+      currentSlide?.id === 'tft-scaling'
+    ) {
+      return 'center 30%';
+    }
+    return 'center center';
+  };
+
   // Parse potential YouTube or Vimeo URL for ambient background video streaming
   const youtubeMatch = activeImageUrl
     ? activeImageUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/i)
@@ -525,20 +554,8 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
           >
             {/* Minimal Top Bar: ONLY Back to Racket & Audio Toggle */}
             <header className="absolute top-0 left-0 right-0 z-30 px-6 sm:px-10 py-6 flex items-center justify-between pointer-events-none">
-              {/* Left Control: Read Paper button for AV Paper Slide */}
-              <div className="pointer-events-auto flex items-center space-x-2">
-                {isAvPaperSlide && (
-                  <button
-                    onClick={() => setIsPaperModalOpen(true)}
-                    id="read-paper-header-btn"
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#C8A462]/20 hover:bg-[#C8A462]/35 text-[#E8C988] hover:text-white text-xs font-mono border border-[#C8A462]/60 hover:border-[#C8A462] backdrop-blur-md transition-all duration-300 cursor-pointer shadow-md"
-                    title="Read full literature review research paper"
-                  >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>Read Paper</span>
-                  </button>
-                )}
-              </div>
+              {/* Left Control Spacer */}
+              <div className="pointer-events-auto flex items-center space-x-2" />
 
               {/* Right Control: Audio mute toggle & Back to Racket */}
               <div className="pointer-events-auto flex items-center space-x-2 sm:space-x-3">
@@ -673,15 +690,19 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                       <img
                         src={customSavedImage}
                         alt={currentSlide?.name}
-                        className="w-full h-full object-cover transition-opacity duration-300"
+                        style={{
+                          objectPosition: getSlideObjectPosition(customSavedImage),
+                        }}
+                        className={`w-full h-full object-cover transition-opacity duration-300 ${
+                          isOperationalSlide ? 'contrast-[0.80] brightness-[1.03]' : ''
+                        }`}
                       />
                     ) : availableImages.length > 1 ? (
                       /* Layered Multi-Image Smooth Cross-Dissolve */
                       <div className="absolute inset-0 w-full h-full">
                         {availableImages.map((img, idx) => {
                           const isVisible = idx === (tennisImgIndex % availableImages.length);
-                          const isFirstTennisImg = img.imageUrl?.includes('DSC00474') || img.id === 'tennis-img-1';
-                          const objectPos = isFirstTennisImg ? 'center 28%' : 'center center';
+                          const objectPos = getSlideObjectPosition(img.imageUrl, img.objectPosition);
 
                           return (
                             <motion.img
@@ -705,18 +726,14 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                         src={activeImageUrl}
                         alt={currentSlide?.name}
                         style={{
-                          objectPosition: (activeImageUrl.includes('DSC00474') || defaultActiveImage?.id === 'tennis-img-1')
-                            ? 'center 28%'
-                            : (activeImageUrl.includes('IMG_3371') || currentSlide?.id === 'tft-scaling')
-                            ? 'center 18%'
-                            : activeImageUrl.includes('IMG_1586')
-                            ? 'center 24%'
-                            : 'center center',
+                          objectPosition: getSlideObjectPosition(activeImageUrl),
                         }}
                         className={`w-full h-full object-cover transition-opacity duration-300 ${
-                          (activeImageUrl.includes('IMG_3371') || currentSlide?.id === 'tft-scaling')
-                            ? 'brightness-[1.12] contrast-[1.04]'
-                            : ''
+                          isOperationalSlide
+                            ? 'contrast-[0.80] brightness-[1.03]'
+                            : (activeImageUrl.includes('IMG_3371') || currentSlide?.id === 'tft-teaching')
+                              ? 'brightness-[1.10] contrast-[1.0]'
+                              : ''
                         }`}
                       />
                     ) : (
@@ -738,10 +755,14 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
 
                   {/* Cinematic Dark Gradient Overlays */}
                   <div
-                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-t from-black/75 via-black/30 to-transparent z-10"
+                    className={`absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-t ${
+                      isOperationalSlide ? 'from-black/60 via-black/20' : 'from-black/75 via-black/30'
+                    } to-transparent z-10`}
                   />
                   <div
-                    className="absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-r from-black/55 via-transparent to-black/25 z-10"
+                    className={`absolute inset-0 pointer-events-none transition-opacity duration-700 bg-gradient-to-r ${
+                      isOperationalSlide ? 'from-black/45 via-transparent to-black/20' : 'from-black/55 via-transparent to-black/25'
+                    } z-10`}
                   />
 
                   {/* Kinetic Downward Transition Accent Line */}
@@ -789,16 +810,6 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                             <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 stroke-[2.5]" />
                           </span>
                         </button>
-
-                        <button
-                          onClick={() => setIsPaperModalOpen(true)}
-                          id={`read-paper-btn-${currentIndex}`}
-                          className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#C8A462]/20 hover:bg-[#C8A462]/35 text-[#E8C988] hover:text-white text-xs font-mono border border-[#C8A462]/50 backdrop-blur-sm transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-                          title="Read complete research paper"
-                        >
-                          <BookOpen className="w-3.5 h-3.5" />
-                          <span>Read Paper</span>
-                        </button>
                       </div>
                     ) : activeLink ? (
                       <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
@@ -823,35 +834,12 @@ export const RacketZoneModal: React.FC<RacketZoneModalProps> = ({
                             <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 stroke-[2.5]" />
                           </span>
                         </a>
-
-                        {isAvPaperSlide && (
-                          <button
-                            onClick={() => setIsPaperModalOpen(true)}
-                            id={`read-paper-sub-btn-${currentIndex}`}
-                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#C8A462]/20 hover:bg-[#C8A462]/35 text-[#E8C988] hover:text-white text-xs font-mono border border-[#C8A462]/50 backdrop-blur-sm transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-                            title="Read complete research paper"
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Read Paper</span>
-                          </button>
-                        )}
                       </div>
                     ) : (
                       <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
                         <h2 className="text-3xl sm:text-5xl md:text-6xl font-serif font-medium text-[#F6F3ED] tracking-tight leading-none drop-shadow-md">
                           {currentSlide?.name}
                         </h2>
-                        {isAvPaperSlide && (
-                          <button
-                            onClick={() => setIsPaperModalOpen(true)}
-                            id={`read-paper-btn-nopermalink-${currentIndex}`}
-                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-[#C8A462]/20 hover:bg-[#C8A462]/35 text-[#E8C988] hover:text-white text-xs font-mono border border-[#C8A462]/50 backdrop-blur-sm transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
-                            title="Read complete research paper"
-                          >
-                            <BookOpen className="w-3.5 h-3.5" />
-                            <span>Read Paper</span>
-                          </button>
-                        )}
                       </div>
                     )}
                   </div>
